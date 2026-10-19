@@ -1,9 +1,8 @@
 -- =====================================================================
 -- Mylink — migração inicial (espelha docs/03-banco-de-dados.md)
 -- Supabase / PostgreSQL 15+
+-- (sem CREATE EXTENSION: o schema usa apenas funções core — gen_random_uuid, md5)
 -- =====================================================================
-
-create extension if not exists pgcrypto;
 
 create type public.layout_kind as enum ('lista', 'grade', 'cards');
 create type public.button_kind as enum ('solido', 'contorno', 'sombra');
