@@ -45,6 +45,8 @@ create table public.profiles (
   avatar_url    text,
   plan_id       smallint not null default 1 references public.plans(id),
   plan_valid_until timestamptz,                          -- reserva p/ cobrança futura
+  role          text not null default 'user' check (role in ('user', 'admin')),
+  status        text not null default 'ativo' check (status in ('ativo', 'bloqueado')),
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now()
 );
@@ -290,6 +292,59 @@ begin
   end if;
 end $$;
 
+-- 5.1 Administração (security definer; ações exclusivas do admin — doc 14)
+create or replace function public.is_admin()
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.profiles where id = auth.uid() and role = 'admin')
+$$;
+
+-- lista usuários com e-mail (vindo de auth.users), plano, status e contagens
+create or replace function public.admin_list_users()
+returns table (
+  id uuid, handle text, display_name text, email text, avatar_url text,
+  plano text, status text, criado_em timestamptz, paginas bigint, cliques bigint
+) language sql security definer set search_path = public as $$
+  select p.id, p.handle, p.display_name, u.email, p.avatar_url,
+         pl.code, p.status, p.created_at,
+         (select count(*) from public.pages pg where pg.owner_id = p.id),
+         (select count(*) from public.click_events e
+            join public.pages pg2 on pg2.id = e.page_id
+           where pg2.owner_id = p.id and e.kind = 'click')
+    from public.profiles p
+    join auth.users u on u.id = p.id
+    join public.plans pl on pl.id = p.plan_id
+   where public.is_admin()
+   order by p.created_at desc
+$$;
+
+-- bloquear/reativar usuário
+create or replace function public.admin_set_user_status(p_user uuid, p_status text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then
+    raise exception 'Acesso restrito ao administrador.';
+  end if;
+  if p_status not in ('ativo', 'bloqueado') then
+    raise exception 'Status inválido.';
+  end if;
+  update public.profiles set status = p_status where id = p_user;
+  if not found then raise exception 'Usuário não encontrado.'; end if;
+end $$;
+
+-- atribuir plano (ativação manual — doc 10 §3)
+create or replace function public.admin_assign_plan(p_user uuid, p_plan smallint)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if not public.is_admin() then
+    raise exception 'Acesso restrito ao administrador.';
+  end if;
+  if not exists (select 1 from public.plans where id = p_plan) then
+    raise exception 'Plano não encontrado.';
+  end if;
+  update public.profiles set plan_id = p_plan where id = p_user;
+  if not found then raise exception 'Usuário não encontrado.'; end if;
+end $$;
+
 -- Métricas agregadas (doc 09): dono vê apenas o que é seu, respeitando a janela do plano
 create or replace function public.get_metrics(p_page_id uuid, p_from date, p_to date)
 returns jsonb language plpgsql security definer set search_path = public as $$
@@ -369,11 +424,13 @@ create policy profiles_update_dono on public.profiles
   for update using (auth.uid() = id) with check (auth.uid() = id);
 -- (INSERT/DELETE de profiles: apenas pelo trigger security definer / cascade)
 
--- pages
+-- pages (escrita exige conta ativa — usuário bloqueado não escreve)
 create policy pages_publicas on public.pages
   for select using (published = true);                    -- visitante vê só publicadas
 create policy pages_dono on public.pages
-  for all using (auth.uid() = owner_id) with check (auth.uid() = owner_id);
+  for all using (auth.uid() = owner_id)
+  with check (auth.uid() = owner_id and exists (
+    select 1 from public.profiles pr where pr.id = auth.uid() and pr.status = 'ativo'));
 
 -- links
 create policy links_pagina_publica on public.links
@@ -383,7 +440,17 @@ create policy links_dono on public.links
   for all using (exists (select 1 from public.pages p
                           where p.id = page_id and p.owner_id = auth.uid()))
   with check (exists (select 1 from public.pages p
-                       where p.id = page_id and p.owner_id = auth.uid()));
+                       where p.id = page_id and p.owner_id = auth.uid())
+              and exists (select 1 from public.profiles pr
+                          where pr.id = auth.uid() and pr.status = 'ativo'));
+
+-- administração: planos são gerenciáveis pelo admin (criar/editar planos)
+create policy plans_admin on public.plans
+  for all using (public.is_admin()) with check (public.is_admin());
+
+-- administração: admin atualiza papel/status/plano de qualquer perfil
+create policy profiles_admin_update on public.profiles
+  for update using (public.is_admin()) with check (public.is_admin());
 
 -- click_events: sem policies de cliente => nenhum cliente lê ou escreve.
 -- Escrita: Edge Function com service_role. Leitura: RPC get_metrics (security definer).
@@ -438,10 +505,10 @@ Convensão de caminho: `avatars/{auth.uid()}/avatar.webp` (sobrescrito a cada tr
 
 **Planos:**
 
-| code | nome | max_pages | max_links_per_page | metrics_days | custom_domain | preço |
+| code | nome | max_pages | max_links_per_page | metrics_days | custom_domain | preço (exibido) |
 |---|---|---|---|---|---|---|
-| `free` | Gratuito | 1 | 5 | 30 | false | R$ 0 |
-| `pro` | Pro | -1 (ilimitado) | -1 (ilimitado) | -1 (histórico todo) | true | R$ 19,90/mês (referência; sem cobrança nesta fase) |
+| `free` | Gratuito | 1 | 5 | 30 | false | R$ 0,00 |
+| `pro` | Pro | -1 (ilimitado) | -1 (ilimitado) | -1 (histórico todo) | true | **R$ 15,00/mês** (`price_monthly_cents = 1500`) — ativação manual pelo administrador, doc 14 |
 
 **Temas** (`tokens` JSONB — chaves: `background`, `backgroundGradient`, `surface`, `text`, `textMuted`, `accent`, `accentText`, `radius`, `buttonShadow`):
 
@@ -461,6 +528,7 @@ Convensão de caminho: `avatars/{auth.uid()}/avatar.webp` (sobrescrito a cada tr
 | `anon` (chave pública) | SPA em produção — todo acesso passa pelo RLS |
 | `authenticated` | Usuário logado |
 | `service_role` | **só** na Edge Function `track-click` (segredo no Supabase) |
+| `admin` (papel no banco) | `profiles.role = 'admin'` — gerencia usuários e planos via RPCs `admin_*` (doc 14) |
 | Postgres | Dashboard Supabase para migrações/administração (sem UI admin própria nesta fase) |
 
 **Rotina:** `npm run db:types` após cada migração; `pg_dump` semanal manual enquanto no plano Free (sem backup automático).

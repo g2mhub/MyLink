@@ -6,21 +6,14 @@
 |---|---|
 | Nome | **Mylink** (texto: `Mylink`; nunca "MyLink" ou "my-link") |
 | Domínio de exemplo | `mylink.com.br` |
-| Símbolo | Um "elo" de corrente desenhado como link SVG, em contorno, com a cor primária no centro do elo superior |
+| Logo | **`logo.png`** na raiz do repositório, aplicado no cabeçalho, login, painel e rodapé da página pública. **Enquanto o arquivo não for fornecido:** placeholder `public/logo.svg` (wordmark laranja/preto/branco). |
+| Paleta oficial | **preto, laranja e branco** (detalhe nos tokens abaixo) |
 | Tagline | "Todos os seus links em um só lugar." |
 | Tom de voz | Direto, acolhedor, sem jargão técnico. Voz ativa: "Adicione seu primeiro link", não "Links podem ser adicionados". |
 | Ícones | lucide-react (genéricos) + `components/icons/brand.tsx` (marcas com `currentColor`) |
 | Tipografia | UI: **Inter** · Logo e display: **Sora** · alternativas do preview: Inter, Plus Jakarta Sans, Sora, Nunito |
 
-**Logo (SVG inline versão atual — 32×32 viewBox 0 0 32 32):**
-
-```svg
-<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Mylink">
-  <path d="M12.5 19.5 L19.5 12.5" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>
-  <path d="M17 8.5 a5.3 5.3 0 0 1 7.5 7.5 l-3 3 a5.3 5.3 0 0 1-7.5 0" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>
-  <path d="M15 23.5 a5.3 5.3 0 0 1-7.5-7.5 l3-3 a5.3 5.3 0 0 1 7.5 0" stroke="#7C3AED" stroke-width="3.2" stroke-linecap="round"/>
-</svg>
-```
+**Logo placeholder (`public/logo.svg`, a ser substituído por `logo.png` quando o asset for fornecido):** wordmark `Mylink` em preto (`#0B0B0F`) com o "elo" em laranja (`#F97316`) — mantém a paleta oficial mesmo sem o asset. Aplicar em todas as telas (landing, auth, painel, admin, rodapé da pública) com `alt="Mylink"` e altura mínima de 24 px.
 
 **Landing: proposta de valor principal** "Sua página de links, pronta em 2 minutos." · CTAs: **"Criar minha página"** (primário) e **"Ver exemplo"** (secundário → página pública demo).
 
@@ -28,18 +21,23 @@
 
 **Marca (fixa no app):**
 
+Paleta oficial **preto, laranja e branco** (paleta laranja derivada do Tailwind Orange):
+
 | Token | Hex | Uso |
 |---|---|---|
-| `brand-500` (primary) | `#7C3AED` | botões primários, foco, links |
-| `brand-600` | `#6D28D9` | hover/active |
-| `brand-50` | `#F5F3FF` | fundos de destaque claros |
-| `ink-900` (texto) | `#17171D` | títulos e texto no claro |
+| `brand-500` (primary) | `#F97316` | botões primários, foco, links, destaque |
+| `brand-600` | `#EA580C` | hover/active |
+| `brand-700` | `#C2410C` | pressed |
+| `brand-50` | `#FFF7ED` | fundos de destaque claros, badges |
+| `ink-900` (preto) | `#0B0B0F` | títulos, texto, cabeçalhos escuros |
 | `ink-500` | `#6B7280` | texto secundário |
-| `surface` | `#FFFFFF` | cards do painel |
-| `canvas` | `#F7F7FB` | fundo do painel (light) |
+| `surface` (branco) | `#FFFFFF` | cards do painel |
+| `canvas` | `#FAFAFA` | fundo do painel |
 | `ok-500` / `warn-500` / `danger-500` | `#10B981` / `#F59E0B` / `#EF4444` | sucesso / atenção / erro |
 
-**Dark mode do painel** (`<html class="dark">`, preferência do sistema + override manual): canvas `#0E0E12`, surface `#17171D`, texto `#F4F4F6`, borda `#26262E`.
+**Barras e cabeçalhos escuros:** usar `ink-900` com texto branco (ex.: cabeçalho da landing, topo da página pública nos temas escuros). Contraste laranja/branco: só usar `brand-500` com **texto branco** a partir de 16 px bold, ou `brand-600`/`brand-700` em textos pequenos.
+
+**Dark mode do painel:** fora do escopo desta fase (UI clara fixa com preto/laranja/branco).
 
 **Tokens da página pública** vêm do tema escolhido (doc 03 §8), com sobrescritas do usuário aplicadas por cima:
 

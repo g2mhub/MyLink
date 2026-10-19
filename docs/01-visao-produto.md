@@ -50,7 +50,13 @@ Criadores de conteúdo, pequenos negócios e profissionais autônomos precisam d
 
 ### Conta e planos
 - **US-C1** Como usuário, quero ver qual é meu plano e seus limites, dentro das configurações.
-- **US-C2** Como usuário do gratuito, quero ver um aviso claro quando atingir o limite de páginas/links, com o caminho para o Pro.
+- **US-C2** Como usuário do gratuito, quero ver um aviso claro quando atingir o limite de páginas/links, com o caminho para pedir upgrade ao administrador.
+
+### Administração
+- **US-AD1** Como administrador, quero listar todos os usuários com e-mail, plano e status.
+- **US-AD2** Como administrador, quero bloquear e reativar contas.
+- **US-AD3** Como administrador, quero atribuir planos manualmente (sem pagamento integrado).
+- **US-AD4** Como administrador, quero criar e editar planos (nome, limites e preço).
 
 ## 4. Fluxos principais
 
@@ -71,15 +77,15 @@ Criadores de conteúdo, pequenos negócios e profissionais autônomos precisam d
 - Preview ao vivo no editor.
 - Página pública responsiva (mobile-first, alvos ≥ 44×44 px).
 - Métricas básicas: visualizações e cliques por página e por link, com períodos.
-- Planos Free/Pro com limites aplicados no banco (sem cobrança).
-- Deploy contínuo no Netlify; banco Supabase com RLS.
+- Planos Gratuito e Pago (R$ 15,00/mês) com limites aplicados no banco; ativação/troca/cancelamento **manual pelo administrador** (sem gateway de pagamento).
+- **Painel administrativo**: usuários (listar, buscar, bloquear/reativar, detalhes, atribuir plano) e planos (criar, editar limites e preço, excluir) — doc 14.
+- Deploy contínuo no Netlify; banco Supabase com RLS e papéis (usuário/administrador).
 
 ### Fora de escopo (fase futura)
-- Cobrança/recorrência (Stripe Checkout + webhooks).
+- Cobrança/recorrência (Stripe Checkout + webhooks) — planos hoje são ativados manualmente pelo admin.
 - Domínio próprio por página (custom domain) — modelado no banco (`custom_domains`), sem UI.
 - Multi-idioma (interface fixa em pt-BR).
 - Páginas com HTML/cabeçalhos personalizados, música de fundo, feeds de Instagram/YouTube embutidos.
-- Painel administrativo interno (gestão de usuários/plano via dashboard Supabase).
 
 ## 6. Requisitos não funcionais (resumo — detalhe nos docs 11 e 12)
 
